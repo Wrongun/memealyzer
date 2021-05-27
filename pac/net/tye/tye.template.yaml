@@ -1,0 +1,93 @@
+name: memealyzer
+registry: ${AZURE_CONTAINER_REGISTRY_SERVER}
+services:
+  - name: azurite
+    image: mcr.microsoft.com/azure-storage/azurite:alpha
+    bindings:
+      - name: blob
+        port: 10000
+        containerPort: 10000
+        protocol: http
+      - name: queue
+        port: 10001
+        containerPort: 10001
+        protocol: http
+      - name: table
+        port: 10002
+        containerPort: 10002
+        protocol: http
+    tags:
+      - local
+  - name: memealyzernetwebapp
+    project: ${ROOT}/src/net/WebApp/WebApp.csproj
+    bindings:
+      - port: 1080
+        containerPort: 80
+    tags:
+      - local
+      - cloud
+  - name: memealyzernetapi
+    project: ${ROOT}/src/net/Api/Api.csproj
+    bindings:
+      - port: 2080
+        containerPort: 80
+    env_file: 
+      - ${DOTENV_FILENAME}
+    tags:
+      - local
+      - cloud
+  - name: memealyzernetfunction
+    azureFunction: ${ROOT}/src/net/Services/Functions/
+    bindings:
+      - port: 3080
+        protocol: http
+    tags:
+      - local
+  - name: memealyzernetqueueservice
+    project: ${ROOT}/src/net/Services/QueueService/QueueService.csproj
+    env_file: 
+    - ${DOTENV_FILENAME}
+    tags:
+      - local
+      - cloud
+
+ingress:
+  - name: ingresslocal
+    rules:
+      - path: /
+        service: memealyzernetwebapp
+      - path: /images
+        service: memealyzernetapi
+        preservePath: true
+      - path: /image
+        service: memealyzernetapi
+        preservePath: true
+      - path: /config
+        service: memealyzernetapi
+        preservePath: true
+      - path: /imagehub
+        service: memealyzernetapi
+        preservePath: true
+      - path: /api/negotiate
+        service: memealyzernetfunction
+        preservePath: true
+    tags:
+      - local
+  - name: ingress
+    rules:
+      - path: /
+        service: memealyzernetwebapp
+      - path: /images
+        service: memealyzernetapi
+        preservePath: true
+      - path: /image
+        service: memealyzernetapi
+        preservePath: true
+      - path: /config
+        service: memealyzernetapi
+        preservePath: true
+      - path: /imagehub
+        service: memealyzernetapi
+        preservePath: true
+    tags:
+      - cloud
